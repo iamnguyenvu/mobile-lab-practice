@@ -1,32 +1,48 @@
-import ExpenseItem, { ExpenseType } from "@/components/ExpenseItem";
-import { useState } from "react";
-import { FlatList, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { Expense, listExpenses } from "@/db/sqlite";
+import { router, useFocusEffect } from "expo-router";
+import { useCallback, useState } from "react";
+import { FlatList, Platform, Pressable, RefreshControl, StyleSheet, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-
-type Expense = {
-  id: string;
-  title: string;
-  amount: number;
-  createdAt: string;   // ISO
-  type: ExpenseType;
-};
-
-const demoData: Expense[] = [
-  { id: "1", title: "Lương tháng 10", amount: 15000000, type: "income",  createdAt: new Date().toISOString() },
-  { id: "2", title: "Cà phê sáng",   amount: 35000,    type: "expense", createdAt: new Date().toISOString() },
-  { id: "3", title: "Bán đồ cũ",     amount: 500000,   type: "income",  createdAt: new Date().toISOString() },
-  { id: "4", title: "Mua sách",      amount: 120000,   type: "expense", createdAt: new Date().toISOString() },
-];
+import ExpenseItem from "../../components/ExpenseItem";
 
 export default function HomeScreen() {
   const [q, setQ] = useState("");
+  const [data, setData] = useState<Expense[]>([]);
+  const [refreshing, setRefreshing] = useState(false);
 
-  // lọc tạm theo text (title/amount) cho demo
-  const filtered = demoData.filter((it) => {
-    if (!q.trim()) return true;
-    const key = q.trim().toLowerCase();
-    return it.title.toLowerCase().includes(key) || String(it.amount).includes(key);
-  });
+  const load = useCallback(async () => {
+    if (Platform.OS === "web") return;
+    try {
+      const rows = await listExpenses(q);
+      setData(rows);
+    } catch (error) {
+      console.error("Error loading expenses:", error);
+    }
+  }, [q]);
+
+  useFocusEffect(useCallback(() => { load(); }, [load]));
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await load();
+    setRefreshing(false);
+  }, [load]);
+
+  if (Platform.OS === "web") {
+    return (
+      <SafeAreaView style={styles.safe}>
+        <View style={styles.header}>
+          <Text style={styles.title}>EXPENSE TRACKER</Text>
+        </View>
+        <View style={{ flex: 1, justifyContent: "center", alignItems: "center", padding: 20 }}>
+          <Text style={{ fontSize: 18, textAlign: "center", color: "#666" }}>
+            📱 This app requires SQLite which is only available on Android/iOS.{"\n\n"}
+            Please run on a mobile device or emulator.
+          </Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -34,7 +50,7 @@ export default function HomeScreen() {
       <View style={styles.header}>
         <Text style={styles.title}>EXPENSE TRACKER</Text>
 
-        {/* Thanh thao tác nhanh */}
+        {/* Search + Add */}
         <View style={styles.row}>
           <TextInput
             placeholder="Tìm theo tên hoặc số tiền…"
@@ -42,12 +58,12 @@ export default function HomeScreen() {
             onChangeText={setQ}
             style={styles.search}
           />
-          <Pressable onPress={() => {}} style={styles.addBtn}>
-            <Text style={styles.addBtnText}>Thêm</Text>
+          <Pressable onPress={() => router.push("/add")} style={styles.addBtn}>
+            <Text style={styles.addBtnText}>Add</Text>
           </Pressable>
         </View>
 
-        {/* Bộ lọc (UI placeholder) */}
+        {/* Filter (placeholder UI) */}
         <View style={styles.filterRow}>
           <View style={[styles.pill, styles.pillActive]}><Text style={[styles.pillText, styles.pillTextActive]}>Tất cả</Text></View>
           <View style={styles.pill}><Text style={styles.pillText}>Thu</Text></View>
@@ -55,9 +71,9 @@ export default function HomeScreen() {
         </View>
       </View>
 
-      {/* Danh sách Thu–Chi */}
+      {/* Danh sách từ SQLite */}
       <FlatList
-        data={filtered}
+        data={data}
         keyExtractor={(it) => it.id}
         renderItem={({ item }) => (
           <ExpenseItem
@@ -65,11 +81,12 @@ export default function HomeScreen() {
             amount={item.amount}
             createdAt={item.createdAt}
             type={item.type}
-            onLongPress={() => {/* soft-delete sau này */}}
+            onPress={() => router.push({ pathname: "/edit", params: { id: item.id } })}
           />
         )}
         ListEmptyComponent={<Text style={styles.empty}>Chưa có dữ liệu</Text>}
         contentContainerStyle={styles.listContent}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       />
     </SafeAreaView>
   );
