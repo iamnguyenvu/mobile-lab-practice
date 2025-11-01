@@ -1,7 +1,7 @@
-import { Expense, listExpenses } from "@/db/sqlite";
+import { Expense, listExpenses, softDeleteExpense } from "@/db/sqlite";
 import { router, useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
-import { FlatList, Platform, Pressable, RefreshControl, StyleSheet, Text, TextInput, View } from "react-native";
+import { Alert, FlatList, Platform, Pressable, RefreshControl, StyleSheet, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import ExpenseItem from "../../components/ExpenseItem";
 
@@ -27,6 +27,30 @@ export default function HomeScreen() {
     await load();
     setRefreshing(false);
   }, [load]);
+
+  // Câu 5: Xóa với long press
+  const handleDelete = (item: Expense) => {
+    Alert.alert(
+      "Xác nhận xóa",
+      `Bạn có chắc muốn xóa "${item.title}"?`,
+      [
+        { text: "Hủy", style: "cancel" },
+        {
+          text: "Xóa",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await softDeleteExpense(item.id);
+              Alert.alert("Thành công", "Đã xóa khoản chi tiêu");
+              load();
+            } catch (error) {
+              Alert.alert("Lỗi", "Không thể xóa: " + error);
+            }
+          },
+        },
+      ]
+    );
+  };
 
   if (Platform.OS === "web") {
     return (
@@ -61,6 +85,9 @@ export default function HomeScreen() {
           <Pressable onPress={() => router.push("/add")} style={styles.addBtn}>
             <Text style={styles.addBtnText}>Add</Text>
           </Pressable>
+          <Pressable onPress={() => router.push("/trash")} style={styles.trashBtn}>
+            <Text style={styles.trashBtnText}>🗑️</Text>
+          </Pressable>
         </View>
 
         {/* Filter (placeholder UI) */}
@@ -82,6 +109,7 @@ export default function HomeScreen() {
             createdAt={item.createdAt}
             type={item.type}
             onPress={() => router.push({ pathname: "/edit", params: { id: item.id } })}
+            onLongPress={() => handleDelete(item)}
           />
         )}
         ListEmptyComponent={<Text style={styles.empty}>Chưa có dữ liệu</Text>}
@@ -106,6 +134,8 @@ const styles = StyleSheet.create({
   },
   addBtn: { backgroundColor: "#222", paddingHorizontal: 16, borderRadius: 8, justifyContent: "center", height: 40 },
   addBtnText: { color: "#fff", fontWeight: "700", textAlign: "center" },
+  trashBtn: { backgroundColor: "#666", paddingHorizontal: 12, borderRadius: 8, justifyContent: "center", height: 40 },
+  trashBtnText: { fontSize: 20 },
   filterRow: { flexDirection: "row", gap: 8, marginTop: 10 },
   pill: { paddingVertical: 6, paddingHorizontal: 12, backgroundColor: "#eee", borderRadius: 999 },
   pillActive: { backgroundColor: "#222" },

@@ -1,5 +1,6 @@
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { Stack } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
@@ -22,7 +23,9 @@ export default function RootLayout() {
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="add" options={{ headerShown: false }} />
           <Stack.Screen name="edit" options={{ headerShown: false }} />
+          <Stack.Screen name="trash" options={{ headerShown: false }} />
         </Stack>
+        <StatusBar style="auto" />
       </ThemeProvider>
     </SafeAreaProvider>
   );

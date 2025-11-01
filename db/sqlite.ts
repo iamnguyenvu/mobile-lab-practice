@@ -95,3 +95,22 @@ export async function updateExpense(id: string, updates: Partial<Omit<Expense, "
   const sql = `UPDATE expenses SET ${fields.join(", ")} WHERE id = ?;`;
   await db.runAsync(sql, values);
 }
+
+export async function softDeleteExpense(id: string) {
+  const db = getDb();
+  const sql = `UPDATE expenses SET deletedAt = ? WHERE id = ?;`;
+  await db.runAsync(sql, [new Date().toISOString(), id]);
+}
+
+export async function listDeletedExpenses(q = "") {
+  const db = getDb();
+  const clauses: string[] = ["deletedAt IS NOT NULL"];
+  const args: any[] = [];
+  if (q.trim()) {
+    clauses.push("(title LIKE ? OR CAST(amount AS TEXT) LIKE ?)");
+    args.push(`%${q}%`, `%${q}%`);
+  }
+  const where = `WHERE ${clauses.join(" AND ")}`;
+  const sql = `SELECT * FROM expenses ${where} ORDER BY datetime(deletedAt) DESC;`;
+  return db.getAllAsync<Expense>(sql, args);
+}
