@@ -62,3 +62,36 @@ export async function listExpenses(q = "") {
   const sql = `SELECT * FROM expenses ${where} ORDER BY datetime(createdAt) DESC;`;
   return db.getAllAsync<Expense>(sql, args);
 }
+
+export async function updateExpense(id: string, updates: Partial<Omit<Expense, "id">>) {
+  const db = getDb();
+  const fields: string[] = [];
+  const values: any[] = [];
+  
+  if (updates.title !== undefined) {
+    fields.push("title = ?");
+    values.push(updates.title);
+  }
+  if (updates.amount !== undefined) {
+    fields.push("amount = ?");
+    values.push(updates.amount);
+  }
+  if (updates.type !== undefined) {
+    fields.push("type = ?");
+    values.push(updates.type);
+  }
+  if (updates.createdAt !== undefined) {
+    fields.push("createdAt = ?");
+    values.push(updates.createdAt);
+  }
+  if (updates.deletedAt !== undefined) {
+    fields.push("deletedAt = ?");
+    values.push(updates.deletedAt);
+  }
+  
+  if (fields.length === 0) return;
+  
+  values.push(id);
+  const sql = `UPDATE expenses SET ${fields.join(", ")} WHERE id = ?;`;
+  await db.runAsync(sql, values);
+}
