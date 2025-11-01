@@ -9,6 +9,7 @@ export default function HomeScreen() {
   const [q, setQ] = useState("");
   const [data, setData] = useState<Expense[]>([]);
   const [refreshing, setRefreshing] = useState(false);
+  const [filter, setFilter] = useState<"all" | "income" | "expense">("all");
 
   const load = useCallback(async () => {
     if (Platform.OS === "web") return;
@@ -68,6 +69,12 @@ export default function HomeScreen() {
     );
   }
 
+  // Câu 10: Filter data based on type
+  const filteredData = data.filter((item) => {
+    if (filter === "all") return true;
+    return item.type === filter;
+  });
+
   return (
     <SafeAreaView style={styles.safe}>
       {/* Header */}
@@ -92,15 +99,27 @@ export default function HomeScreen() {
 
         {/* Filter (placeholder UI) */}
         <View style={styles.filterRow}>
-          <View style={[styles.pill, styles.pillActive]}><Text style={[styles.pillText, styles.pillTextActive]}>Tất cả</Text></View>
-          <View style={styles.pill}><Text style={styles.pillText}>Thu</Text></View>
-          <View style={styles.pill}><Text style={styles.pillText}>Chi</Text></View>
+          <Pressable onPress={() => setFilter("all")}>
+            <View style={[styles.pill, filter === "all" && styles.pillActive]}>
+              <Text style={[styles.pillText, filter === "all" && styles.pillTextActive]}>Tất cả</Text>
+            </View>
+          </Pressable>
+          <Pressable onPress={() => setFilter("income")}>
+            <View style={[styles.pill, filter === "income" && styles.pillActive]}>
+              <Text style={[styles.pillText, filter === "income" && styles.pillTextActive]}>Thu</Text>
+            </View>
+          </Pressable>
+          <Pressable onPress={() => setFilter("expense")}>
+            <View style={[styles.pill, filter === "expense" && styles.pillActive]}>
+              <Text style={[styles.pillText, filter === "expense" && styles.pillTextActive]}>Chi</Text>
+            </View>
+          </Pressable>
         </View>
       </View>
 
       {/* Danh sách từ SQLite */}
       <FlatList
-        data={data}
+        data={filteredData}
         keyExtractor={(it) => it.id}
         renderItem={({ item }) => (
           <ExpenseItem
