@@ -114,3 +114,9 @@ export async function listDeletedExpenses(q = "") {
   const sql = `SELECT * FROM expenses ${where} ORDER BY datetime(deletedAt) DESC;`;
   return db.getAllAsync<Expense>(sql, args);
 }
+
+export async function restoreExpense(id: string) {
+  const db = getDb();
+  const sql = `UPDATE expenses SET deletedAt = NULL WHERE id = ?;`;
+  await db.runAsync(sql, [id]);
+}

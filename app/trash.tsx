@@ -1,4 +1,4 @@
-import { Expense, listDeletedExpenses } from "@/db/sqlite";
+import { Expense, listDeletedExpenses, restoreExpense } from "@/db/sqlite";
 import { router, useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
 import {
@@ -37,6 +37,29 @@ export default function TrashScreen() {
     await load();
     setRefreshing(false);
   }, [load]);
+
+  // Câu 8: Restore expense from trash
+  const handleRestore = (item: Expense) => {
+    Alert.alert(
+      "Khôi phục",
+      `Bạn có muốn khôi phục "${item.title}"?`,
+      [
+        { text: "Hủy", style: "cancel" },
+        {
+          text: "Khôi phục",
+          onPress: async () => {
+            try {
+              await restoreExpense(item.id);
+              Alert.alert("Thành công", "Đã khôi phục khoản chi tiêu");
+              load();
+            } catch (error) {
+              Alert.alert("Lỗi", "Không thể khôi phục: " + error);
+            }
+          },
+        },
+      ]
+    );
+  };
 
   if (Platform.OS === "web") {
     return (
@@ -86,6 +109,7 @@ export default function TrashScreen() {
             amount={item.amount}
             createdAt={item.deletedAt || item.createdAt}
             type={item.type}
+            onLongPress={() => handleRestore(item)}
           />
         )}
         ListEmptyComponent={<Text style={styles.empty}>Thùng rác trống</Text>}
